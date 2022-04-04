@@ -1,69 +1,51 @@
-/* src/pages/Artigo/index.tsx */
-import faker from "@faker-js/faker";
-import axios from "axios";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { ArticleView } from "../../components/ArticleView";
-
-interface IArticle {
-  autor: {
-    id: number, 
-    nome: string, 
-    login: string,
-    senha: string
-    avatar: string, 
-  },
-  resumo: string, 
-  imagem: string, 
-  conteudo: string,
-}
+import apiClient from "../../services/api-client";
+import { IArticle } from "./ArtigoPage.type";
 
 export const ArtigoPage = () => {
-  const [ article, setArticle ] = useState< IArticle >({
+  const [ article, setArticle ] = useState<IArticle>({
     autor: {
       id: 0, 
       nome: "string", 
-      login: "",
-      senha: "",
       avatar: ""
     },
+    titulo: "",
     resumo: "", 
     imagem: "",
     conteudo: "",
-  });
-  const [ autor, setAutor ] = useState({
-    nome: "",
-    avatar: ""
+    dataPublicacao: new Date,
   });
   const [dataPublicacao, setDataPublicacao] = useState(new Date());
-
+  const [ showComponent, setshowComponent ] = useState(false)
+  const [ erro, setErro ] = useState('')
   const { id } = useParams()
 
   useEffect(() => { buscaArtigo() }, []);
 
   async function buscaArtigo() {
-    const token = localStorage.getItem("access_token")
-    const response = await axios.get(
-      `http://3.221.159.196:3307/artigos/${id}`, {
-        headers: {
-          "Authorization": `bearer ${token}`
-        }
-      }
-    )
-    
-    setArticle(response.data)   
+    setErro('')
+    try {
+      const response = await apiClient.get<IArticle>(`/artigos/${id}`)
+      setArticle(response.data)   
+    } catch (error: any) {
+      error.response.data.statusCode === 401 ?
+        setErro('Unauthorized') :
+        setErro('Erro ao buscar artigo')
+    }
+    setshowComponent(true)
   }
 
   return (
-    article.conteudo !== ""  ?
-    <div className="m-10">
-      <ArticleView
-        article={article.conteudo}
-        autor={{nome: article.autor.nome, avatar: article.autor.avatar }}
-        dataPublicacao={dataPublicacao}
-        tempoLeitura={ '10min' }
-      />
-    </div> :
-    <div></div>
+    showComponent ?
+      <div className="m-10">
+        <ArticleView
+          article={article}
+          dataPublicacao={dataPublicacao}
+          tempoLeitura={ '10min' }
+        />
+      </div> :
+      <div />
   );
 };

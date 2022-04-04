@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import axios from "axios";
+import apiClient from "../../services/api-client"
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { ArticleForm } from "../../components/ArticleForm";
@@ -8,80 +8,91 @@ import { useNavigate } from "react-router-dom";
 
 export const EditarArquivoPage = () => {
   
-  const [ artigo, setArtigo ] = useState<ArticleThumbnailProps>()
+  const [ artigo, setArtigo ] = useState<ArticleThumbnailProps>({
+    id: 0,
+    imagem: "",
+    titulo: "",
+    resumo: "",
+    dataPublicacao: new Date,
+    autor: {
+      nome: "",
+      avatar: "",
+      id: 0,
+    },
+    conteudo: ""
+  })
+  const [ erro, setErro ] = useState('')
   const { id } = useParams();
-  
-  const token = localStorage.getItem("access_token");
 
   const navigate = useNavigate()
 
   useEffect(() => { 
-    if (id) {
-      buscarArtigo();
-    }
+    id && buscarArtigo();
   }, [id]);
 
   async function buscarArtigo() {
-    
-    const response = await axios.get<ArticleThumbnailProps>(
-      `http://3.221.159.196:3307/artigos/${id}`,
-      {
-        headers: {
-          'Authorization': `bearer ${token}`
-        }
-      }
-    );
-    setArtigo(response.data);
+    setErro('')
+    try {
+      const response = await apiClient.get<ArticleThumbnailProps>(
+        `/artigos/${id}`
+      );
+      setArtigo(response.data);
+    } catch (error: any) {
+      error.response.data.statusCode === 401 ?
+        setErro('Unauthorized') :
+        setErro('Erro ao buscar artigo')
+    }
   }
   
   async function handleSubmit (artigo: ArticleThumbnailProps) {
+    setErro('')
 
     if (artigo.id) {
-      await axios.patch(
-        `http://3.221.159.196:3307/artigos/${id}`, 
-        { ...artigo },
-        {
-          headers: {
-            'Authorization': `bearer ${token}`
-        }}
-      )   
-      navigate(`/artigo/${artigo.id}`)    
+      try {
+        await apiClient.patch<ArticleThumbnailProps>(
+          `/artigos/${id}`, 
+          { ...artigo }
+        )   
+        navigate(`/artigo/${artigo.id}`)    
+      } catch (error: any) {
+        error.response.data.statusCode === 401 ? 
+          setErro("Unauthorized") :
+          setErro('Erro ao editar artigo')
+      }
     } else {
-      const response = await axios.post(
-        `http://3.221.159.196:3307/artigos`, 
-        { ...artigo },
-        {
-          headers: {
-            'Authorization': `bearer ${token}`
-        }}
-      )
-      
-      navigate(`/artigo/${response.data.id}`)
+      try {
+        const response = await apiClient.post(
+          `/artigos`, 
+          { ...artigo }
+        )
+        navigate(`/artigo/${response.data.id}`)
+      } catch (error: any) {
+        error.response.data.statusCode === 401 ?
+          setErro("Unauthorized") : 
+          setErro('Erro ao criar novo artigo')
+      }
     }
   }
   
   async function handleDelete () {
-    await axios.delete(
-      `http://3.221.159.196:3307/artigos/${id}`, 
-      {
-        headers: {
-          'Authorization': `bearer ${token}`
-        }
-      }
-    )
-    navigate(`/artigos`)
+    try {
+      await apiClient.delete( `/artigos/${id}`)
+      navigate(`/artigos`)
+    } catch (error:any) {
+      error.response.data.statusCode === 401 ?
+        setErro('Unauthorized') : 
+        setErro('Erro ao deletar artigo')
+    }
   }
 
   return (
-    <>
-      <div className="items-center justify-center m-10">
-        <ArticleForm 
-        article={artigo}
-        onClick={handleDelete}
-        onSubmitProp={handleSubmit}
-         />
-      </div>
-    </>
+    <div className="items-center justify-center m-10">
+      <ArticleForm 
+      article={artigo}
+      onClick={handleDelete}
+      onSubmitProp={handleSubmit}
+      />
+    </div>
   );
 };
 

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../Button";
 import { Input } from "../Input";
+import apiClient from "../../services/api-client"
 
 export const Login = () => {
   const [ login, setLogin ] = useState('')
@@ -19,11 +20,10 @@ export const Login = () => {
     setLoading(true)
 
     try {
-      const url = "http://3.221.159.196:3307/auth/login"
-      const response = await axios.post(
-        url, 
+      const response = await apiClient.post(
+        "/auth/login",
         {login, senha}
-        )
+      )
         
       const { access_token, id } = response.data
       if (access_token) {
@@ -32,11 +32,9 @@ export const Login = () => {
         navigate("/artigos");
       } 
     } catch (error: any) {
-      if (error.response.data.statusCode === 401) {
-        setErro('Usuário ou senha Inválidos');
-      } else {
-        setErro('Erro ao autenticar usuário. Tente novamente mais tarde.');
-      }
+        error.response.data.statusCode === 401 ?
+          setErro('Usuário ou senha Inválidos'):
+          setErro('Erro ao autenticar usuário. Tente novamente mais tarde.');
     }
 
     setLoading(false)  

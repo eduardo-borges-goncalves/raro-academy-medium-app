@@ -1,43 +1,38 @@
-/* src/pages/MeusArtigos/index.tsx */
-import axios from "axios";
+import apiClient from "../../services/api-client"
 import { useEffect, useState } from "react";
 
 import { ArticleList } from "../../components/ArticleList";
 import { ArticleThumbnailProps } from "../../components/ArticleThumbnail/ArticleThumbnail.types";
-import { SemArtigos } from "../../components/SemArtigos";
-import { geraArtigos } from "../../stories/helpers/gerador-artigos";
 
 export const MeusArtigosPage = () => {
   const [articles, setArticles] = useState<ArticleThumbnailProps[]>([]);
-  const [ control, setControl ] = useState(false)
+  const [ showComponent, setShowComponent ] = useState(false)
+  const [ erro, setErro ] = useState("")
 
   async function buscaMeusArtigos() {
 
-    const token = localStorage.getItem("access_token")
+    setErro('')
     
-    const response = await axios.get<ArticleThumbnailProps[]>(
-      'http://3.221.159.196:3307/artigos/meus-artigos', 
-      {
-        headers: {
-          "Authorization": `bearer ${token}`
-        }
-      }
-    );
+    try { 
+      const response = await apiClient.get<ArticleThumbnailProps[]>
+      ('/artigos/meus-artigos');
 
-    setArticles(response.data);
-    setControl(true)
+      setArticles(response.data);
+    } catch (error: any) {
+      error.response.data.statusCode === 401 ?
+        setErro('Unauthorized') :
+        setErro('Erro ao buscar artigos');
+    }
+
+    setShowComponent(true) 
   }
 
   useEffect(() => {
     buscaMeusArtigos();
   }, []);
 
-
-  if (control) {
-    console.log("ole")
-    return (<ArticleList articles={articles}/> ) 
-  }
-  return (
+  return ( showComponent ?
+    <ArticleList articles={articles}/> :
     <div />
   );
 };
